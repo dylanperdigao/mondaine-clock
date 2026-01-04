@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mondaine Clock</title>
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #e0e0e0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    canvas {
+        background-color: white;
+        border-radius: 50%;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+    }
+</style>
+</head>
+<body>
+
+<canvas id="clock"></canvas>
+
+<script>
+    const canvas = document.getElementById('clock');
+    const ctx = canvas.getContext('2d');
+
+    let radius = 0;
+
+    const PAUSE_MS = 1500; 
+    const ROTATION_MS = 60000 - PAUSE_MS; 
+    const COLOR_RED = '#E60000';
+
+    function resize() {
+        const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+        
+        radius = size / 2;
+        ctx.translate(radius, radius);
+        
+        ctx.rotate(-Math.PI / 2);
+    }
+
+    function drawLogos() {
+        ctx.save();
+        ctx.rotate(Math.PI / 2); 
+        
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const fontSizeTop = radius * 0.08; 
+        ctx.font = `bold ${fontSizeTop}px Helvetica, Arial, sans-serif`;
+        ctx.fillText("SBB CFF FFS", 0, -radius * 0.35);
+
+        const fontSizeBottom = radius * 0.06;
+        ctx.font = `${fontSizeBottom}px Helvetica, Arial, sans-serif`;
+        ctx.fillText("MONDAINE", 0, radius * 0.35);
+
+        ctx.font = `${radius * 0.025}px Helvetica, Arial, sans-serif`;
+        ctx.fillStyle = '#666';
+        ctx.fillText("Swiss Railway Clock", 0, radius * 0.42);
+
+        ctx.restore();
+    }
+
+    function drawFace() {
+        ctx.save();
+        ctx.fillStyle = '#000';
+        
+        for (let i = 0; i < 60; i++) {
+            ctx.save();
+            ctx.rotate(i * (Math.PI / 30));
+            
+            const isHour = i % 5 === 0;
+            const tickLen = isHour ? radius * 0.25 : radius * 0.08;
+            const tickWidth = isHour ? radius * 0.035 : radius * 0.012;
+            
+            ctx.fillRect(radius - tickLen - (radius*0.02), -tickWidth/2, tickLen, tickWidth);
+            
+            ctx.restore();
+        }
+        ctx.restore();
+        
+        drawLogos();
+    }
+
+    function drawHand(angle, length, width, color, isSecondHand = false) {
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.fillStyle = color;
+
+        if (isSecondHand) {
+            const tailLen = radius * 0.2;
+            const dotRadius = radius * 0.07;
+
+            ctx.beginPath();
+            // Stick
+            ctx.rect(-tailLen, -width / 2, length + tailLen, width);
+            ctx.fill();
+            // Dot
+            ctx.beginPath();
+            ctx.arc(length, 0, dotRadius, 0, Math.PI * 2);
+            ctx.fill();
+            // Center Cap
+            ctx.beginPath();
+            ctx.arc(0, 0, width * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else {
+            // Rectangle centered on axis
+            ctx.fillRect(-radius * 0.15, -width / 2, length + (radius * 0.15), width);
+        }
+        ctx.restore();
+    }
+
+    function draw() {
+        ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
+        drawFace();
+
+        const now = new Date();
+        const ms = now.getMilliseconds();
+        const s = now.getSeconds();
+        const m = now.getMinutes();
+        const h = now.getHours();
+
+        // --- SECOND HAND (Stop-to-Go) ---
+        const totalMs = s * 1000 + ms;
+        let secAngle = 0;
+        if (totalMs < ROTATION_MS) {
+            const progress = totalMs / ROTATION_MS;
+            secAngle = progress * (Math.PI * 2);
+        } else {
+            secAngle = 0; 
+        }
+
+        // --- MINUTE HAND (Snap) ---
+        let visualMinute = m;
+        if (totalMs < ROTATION_MS) {
+            visualMinute = m;
+        }
+        const minAngle = visualMinute * (Math.PI / 30);
+
+        // --- HOUR HAND (Smooth) ---
+        const hourAngle = ((h % 12) + m / 60) * (Math.PI / 6);
+
+        // Draw Hands
+        drawHand(hourAngle, radius * 0.67, radius * 0.07, '#000');
+        drawHand(minAngle, radius * 0.95, radius * 0.055, '#000');
+        drawHand(secAngle, radius * 0.7, radius * 0.022, COLOR_RED, true);
+
+        requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    requestAnimationFrame(draw);
+
+</script>
+</body>
+</html>
