@@ -149,11 +149,7 @@
         }
 
         // --- MINUTE HAND (Snap) ---
-        let visualMinute = m;
-        if (totalMs < ROTATION_MS) {
-            visualMinute = m;
-        }
-        const minAngle = visualMinute * (Math.PI / 30);
+        const minAngle = m * (Math.PI / 30);
 
         // --- HOUR HAND (Smooth) ---
         const hourAngle = ((h % 12) + m / 60) * (Math.PI / 6);
